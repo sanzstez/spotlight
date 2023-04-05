@@ -1,5 +1,5 @@
 /**
- * Spotlight.js v0.7.9.1 (Bundle)
+ * Spotlight.js v0.8.0 (Bundle)
  * Copyright 2019-2021 Nextapps GmbH
  * Author: Thomas Wilkerling
  * Licence: Apache-2.0

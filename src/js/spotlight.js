@@ -13,7 +13,7 @@ import {
     setStyle,
     prepareStyle,
     getByClass,
-    setText,
+    setContent,
     addListener,
     toggleListener,
     cancelEvent,
@@ -589,8 +589,6 @@ function has_fullscreen(){
     //console.log("has_fullscreen");
 
     return (
-
-        document["fullscreen"] ||
         document["fullscreenElement"] ||
         document["webkitFullscreenElement"] ||
         document["mozFullScreenElement"]
@@ -1446,20 +1444,20 @@ function setup_page(direction){
     toggleAnimation(panel);
     update_panel();
 
-    const str_title = gallery.title;
-    const str_description = parse_option("description");
-    const str_button = parse_option("button");
-    const has_content = str_title || str_description || str_button;
+    const content_title = gallery.title;
+    const content_description = parse_option("description");
+    const content_button = parse_option("button");
+    const is_html = parse_option("html");
+    const has_content = content_title || content_description || content_button;
 
-    if(has_content){
+    if(has_content) {
+        content_title && setContent(title, content_title, { is_html });
+        content_description && setContent(description, content_description, { is_html });
+        content_button && setContent(button, content_button, { is_html });
 
-        str_title && setText(title, str_title);
-        str_description && setText(description, str_description);
-        str_button && setText(button, str_button);
-
-        toggleDisplay(title, str_title);
-        toggleDisplay(description, str_description);
-        toggleDisplay(button, str_button);
+        toggleDisplay(title, content_title);
+        toggleDisplay(description, content_description);
+        toggleDisplay(button, content_button);
 
         setStyle(footer, "transform", options_autohide === "all" ? "" : "none");
     }
@@ -1469,7 +1467,8 @@ function setup_page(direction){
     toggleVisibility(footer, has_content);
     toggleVisibility(page_prev, options_infinite || (current_slide > 1));
     toggleVisibility(page_next, options_infinite || (current_slide < slide_count));
-    setText(page, slide_count > 1 ? current_slide + " / " + slide_count : "");
+
+    setContent(page, slide_count > 1 ? current_slide + " / " + slide_count : "");
 
     options_onchange && options_onchange(current_slide, options);
 }

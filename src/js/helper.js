@@ -77,9 +77,18 @@ export function prepareStyle(node, fn){
     fn && setStyle(node, "transition", "");
 }
 
-export function setText(node, text){
+export function setContent(node, content, options = {}) {
+    const { is_html = false } = options;
 
-    node.firstChild.nodeValue = text;
+    if (is_html) {
+        node.innerHTML = content;
+    } else {
+        node.innerText = content;
+    }
+}
+
+export function setHTML(node, html) {
+    node.firstChild.innerHTML = html;
 }
 
 /**

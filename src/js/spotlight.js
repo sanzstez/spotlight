@@ -554,7 +554,7 @@ function init_slide(index){
                 }
             };
 
-            media.crossOrigin = "anonymous";
+            //media.crossOrigin = "anonymous";
             media.src = gallery.src;
             panel.appendChild(media);
         }

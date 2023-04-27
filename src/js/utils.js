@@ -2,6 +2,18 @@ export const loadImage = (url) => {
   return new Promise((resolve, reject) => {
     const image = new Image();
 
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.crossOrigin = "anonymous";
+    image.src = url;
+  })
+};
+
+/*
+export const loadImage = (url) => {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+
     const loadCORS = () => {
       const corsImage = new Image();
 
@@ -15,6 +27,7 @@ export const loadImage = (url) => {
     image.src = url + '?' + Date.now();
   })
 };
+*/
 
 export const dynamicWorker = (funcObj) => {
   // Build a worker from an anonymous function body

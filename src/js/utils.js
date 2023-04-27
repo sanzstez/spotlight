@@ -4,7 +4,7 @@ export const loadImage = (url) => {
 
     image.onload = () => resolve(image);
     image.onerror = reject;
-    image.crossOrigin = "anonymous";
+    //image.crossOrigin = "anonymous";
     image.src = url;
   })
 };

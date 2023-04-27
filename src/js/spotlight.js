@@ -21,13 +21,16 @@ import {
     toggleDisplay,
     toggleAnimation,
     toggleVisibility,
-    downloadImage
+    downloadImage,
+    offscreenCanvasAvailable
 } from "./helper.js";
 
 import { controls, controls_default, keycodes } from "./config.js";
 
 import widget from "./template.js";
 import parse_src from "./parser.js";
+import { loadImage, dynamicWorker } from "./utils.js";
+import { filterFunctionality } from "./webworker.js";
 
 const controls_dom = {};
 const connection = navigator["connection"];
@@ -148,6 +151,9 @@ export function init(){
     addControl("autofit", autofit);
     addControl("zoom-in", zoom_in);
     addControl("zoom-out", zoom_out);
+    addControl("green", filterGreen);
+    addControl("red", filterRed);
+    addControl("normal", restoreOriginal);
     addControl("theme", theme);
     player = addControl("play", play);
     addControl("download", download);
@@ -235,7 +241,7 @@ export function removeControl(classname){
 
 export function show(gallery, group, index){
 
-    //console.log("show", gallery, config);
+    //console.log("show", gallery);
 
     anchors = gallery;
 
@@ -425,6 +431,12 @@ function apply_options(anchor){
     }
 
     options_fit = options["fit"];
+
+    if (!offscreenCanvasAvailable()) {
+        options['green'] = false;
+        options['red'] = false;
+        options['normal'] = false;
+    }
 }
 
 /**
@@ -506,11 +518,6 @@ function init_slide(index){
             media.muted = parse_option("muted");
             media.src = gallery.src; //files[i].src;
 
-            // const source = createElement("source");
-            // source.type = "video/" + files[i].type;
-            // source.src = files[i].src;
-            // media.appendChild(source);
-
             panel.appendChild(media);
         }
         else if(type === "node"){
@@ -534,14 +541,12 @@ function init_slide(index){
             return;
         }
         else{
-
             toggle_spinner(options_spinner, true);
             media = /** @type {HTMLVideoElement|Image} */ (createElement("img"));
 
             media.onload = function(){
 
                 if(media === this){
-
                     media.onerror = null;
                     toggle_spinner(options_spinner);
                     init_slide(index);
@@ -549,7 +554,7 @@ function init_slide(index){
                 }
             };
 
-            //media.crossOrigin = "anonymous";
+            media.crossOrigin = "anonymous";
             media.src = gallery.src;
             panel.appendChild(media);
         }
@@ -1203,6 +1208,86 @@ function show_gallery(){
     options_autoslide && play(true, true);
 }
 
+export function restoreOriginal() {
+    toggle_spinner(true, true);
+    setStyle(media, 'visibility', 'hidden');
+
+    loadImage(gallery.src).then((image) => {
+        media.src = image.src;
+    });
+}
+
+export function filterGreen() {
+    toggle_spinner(true, true);
+    setStyle(media, 'visibility', 'hidden');
+
+    filterImage({ filterColor: 'green' }).
+      then(src => media.src = src);
+}
+
+export function filterRed() {
+    toggle_spinner(true, true);
+    setStyle(media, 'visibility', 'hidden');
+
+    filterImage({ filterColor: 'red' }).
+        then(src => media.src = src);
+}
+
+export function filterImage({ filterColor }) {
+    return new Promise((resolve, _reject) => {
+        const worker = dynamicWorker(filterFunctionality);
+
+        worker.onmessage = (e) => resolve(e.data);
+
+        loadImage(gallery.src).then((image) => {
+            const offscreenCanvas = document.createElement('canvas').transferControlToOffscreen();
+
+            createImageBitmap(image).then((bitmap) => {
+                worker.postMessage({ bitmap, offscreenCanvas, filterColor }, [offscreenCanvas]);
+            });
+        });
+    })
+}
+
+/*
+export function filterGreen() {
+    toggle_spinner(true, true);
+    setStyle(media, "visibility", "hidden");
+
+    loadImage(gallery.src).then((imageSource) => {
+        var canvas = document.createElement('canvas');
+        var ctx = canvas.getContext('2d');
+
+        const percentage = 0;
+
+        const redCoef = percentage / 100.0;
+        const greenCoef = 1 - redCoef;
+
+        canvas.width = imageSource.width;
+        canvas.height = imageSource.height;
+
+        ctx.drawImage(imageSource, 0, 0);
+
+        var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+        const pixels = imageData.data;
+        const size = imageData.data.length;
+
+        for (let i = 0; i < size; i += 4) {
+            const blend = pixels[i] * redCoef + pixels[i + 1] * greenCoef + pixels[i + 2] * 1;
+
+            pixels[i] = blend;
+            pixels[i + 1] = blend;
+            pixels[i + 2] = blend;
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+
+        media.src = canvas.toDataURL('image/jpeg')
+    })
+}
+*/
+
 export function download(){
 
     //console.log("download", media);
@@ -1394,9 +1479,11 @@ function prepare(direction){
 
         const option = controls[i];
 
-        //console.log(option + ": ", options[option]);
+        // console.log(option + ": ", options[option]);
 
-        toggleDisplay(controls_dom[option], parse_option(option, controls_default[option]));
+        const optionActive = parse_option(option, controls_default[option]);
+
+        toggleDisplay(controls_dom[option], optionActive);
     }
 }
 

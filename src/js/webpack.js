@@ -15,5 +15,6 @@ import Spotlight from "./spotlight.js";
 /** @export */ Spotlight.play;
 /** @export */ Spotlight.addControl;
 /** @export */ Spotlight.removeControl;
+/** @export */ Spotlight;
 
-window["Spotlight"] = Spotlight;
+//window["Spotlight"] = Spotlight;

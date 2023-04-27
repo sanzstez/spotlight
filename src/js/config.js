@@ -9,7 +9,10 @@ export const controls = [
     "zoom-out",
     "prev",
     "next",
-    "fullscreen"
+    "fullscreen",
+    "normal",
+    "red",
+    "green"
 ];
 
 export const controls_default = {

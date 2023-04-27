@@ -26,7 +26,10 @@ const style = process.argv[2] === "--style";
             pause: base64Sync('src/img/pause.svg'),
             download: base64Sync('src/img/download.svg'),
             error: base64Sync('src/img/error.svg'),
-            info: base64Sync('src/img/info.svg')
+            info: base64Sync('src/img/info.svg'),
+            normal: base64Sync('src/img/normal.svg'),
+            red: base64Sync('src/img/red.svg'),
+            green: base64Sync('src/img/green.svg')
         };
 
         let tmp = "";

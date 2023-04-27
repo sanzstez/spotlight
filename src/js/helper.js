@@ -212,3 +212,7 @@ export function toggleAnimation(node, state){
 
     setStyle(node, "transition", state ? "" : "none");
 }
+
+export function offscreenCanvasAvailable() {
+    return typeof OffscreenCanvas !== 'undefined';
+}

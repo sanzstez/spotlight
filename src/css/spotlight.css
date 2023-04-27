@@ -238,6 +238,15 @@
 .spl-info {
   background-image: url("../img/info.svg");
 }
+.spl-normal {
+  background-image: url("../img/normal.svg");
+}
+.spl-red {
+  background-image: url("../img/red.svg");
+}
+.spl-green {
+  background-image: url("../img/green.svg");
+}
 .spl-prev,
 .spl-next {
   position: absolute;

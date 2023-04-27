@@ -2,9 +2,16 @@ export const loadImage = (url) => {
   return new Promise((resolve, reject) => {
     const image = new Image();
 
-    image.onload = () => resolve(image);
+    const loadCORS = () => {
+      const corsImage = new Image();
+
+      corsImage.crossOrigin = 'anonymous';
+      corsImage.src = image.src;
+      corsImage.onload = () => resolve(corsImage);
+    };
+
+    image.onload = loadCORS;
     image.onerror = reject;
-    //image.crossOrigin = "anonymous";
     image.src = url;
   })
 };

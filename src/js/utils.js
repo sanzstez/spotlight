@@ -12,7 +12,7 @@ export const loadImage = (url) => {
 
     image.onload = loadCORS;
     image.onerror = reject;
-    image.src = url;
+    image.src = url + '?' + Date.now();
   })
 };
 

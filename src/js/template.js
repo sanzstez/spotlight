@@ -1,12 +1,12 @@
 import { createElement } from "./helper.js";
 
 const template = createElement("div");
-template.id = "spotlight";
-template.innerHTML = (
 
+template.id = "spotlight";
+template.tabIndex = "-1";
+template.innerHTML = (
     // the spinner needs to be a separated element to apply animation
     '<div class=spl-spinner></div>' +
-
     // the wrapper "spl-track" is required to forward pointer events
     '<div class=spl-track>' +
         '<div class=spl-scene>' +

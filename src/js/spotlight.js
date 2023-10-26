@@ -14,8 +14,6 @@ import {
     prepareStyle,
     getByClass,
     setContent,
-    addListener,
-    toggleListener,
     cancelEvent,
     createElement,
     toggleDisplay,
@@ -59,6 +57,8 @@ let options;
 let options_media;
 let options_group;
 let options_infinite;
+let options_inline;
+let container;
 let options_progress;
 let options_onshow;
 let options_onchange;
@@ -105,12 +105,11 @@ let hide_cooldown;
 
 let prefix_request, prefix_exit;
 
-export function init(){
+export function init() {
     if (body) return;
 
-    // console.log("init");
+    body = options_inline ? container : document.body;
 
-    body = document.body;
     slider = getOneByClass("scene");
     header = getOneByClass("header");
     footer = getOneByClass("footer");
@@ -126,25 +125,20 @@ export function init(){
 
     addControl("close", close);
 
-    body[prefix_request = "requestFullscreen"] ||
-    body[prefix_request = "msRequestFullscreen"] ||
-    body[prefix_request = "webkitRequestFullscreen"] ||
-    body[prefix_request = "mozRequestFullscreen"] ||
-    (prefix_request = "");
+    document.body[prefix_request = "requestFullscreen"] ||
+    document.body[prefix_request = "msRequestFullscreen"] ||
+    document.body[prefix_request = "webkitRequestFullscreen"] ||
+    document.body[prefix_request = "mozRequestFullscreen"] || (prefix_request = "");
 
-    if(prefix_request){
-
+    if (prefix_request) {
         prefix_exit = (
-
             prefix_request.replace("request", "exit")
                           .replace("mozRequest", "mozCancel")
                           .replace("Request", "Exit")
         );
 
         maximize = addControl("fullscreen", fullscreen);
-    }
-    else{
-
+    } else {
         controls.pop(); // => "fullscreen"
     }
 
@@ -158,8 +152,8 @@ export function init(){
     player = addControl("play", play);
     addControl("download", download);
 
-    addListener(page_prev, "click", prev);
-    addListener(page_next, "click", next);
+    page_prev.addEventListener('click', prev, true);
+    page_next.addEventListener('click', next, true);
 
     /*
      * binding the tracking listeners to the "widget" will prevent all click listeners to be fired
@@ -170,64 +164,54 @@ export function init(){
 
     const track = getOneByClass("track");
 
-    addListener(track, "mousedown", start);
-    addListener(track, "mousemove", move);
-    addListener(track, "mouseleave", end);
-    addListener(track, "mouseup", end);
-
-    addListener(track, "touchstart", start, { "passive": false });
-    addListener(track, "touchmove", move, { "passive": true });
+    track.addEventListener('mousedown', start, true);
+    track.addEventListener('mousemove', move, true);
+    track.addEventListener('mouseleave', end, true);
+    track.addEventListener('mouseup', end, true);
+    track.addEventListener('touchstart', start, { "passive": false });
+    track.addEventListener('touchmove', move, { "passive": true });
     //addListener(track, "touchcancel", end);
-    addListener(track, "touchend", end);
+
+    //track.addEventListener('touchend', end, true);
     // click listener for the wrapper "track" is already covered
     //addListener(track, "click", menu);
 
-    addListener(button, "click", function(){
-
-        if(options_click){
-
+    button.addEventListener('click', function() {
+        if (options_click) {
             options_click(current_slide, options);
         }
-        else if(options_href){
-
+        else if (options_href) {
             location.href = options_href;
         }
-    });
+    }, true);
 
     /**
      * @param {string} classname
      * @returns {HTMLElement}
      */
 
-    function getOneByClass(classname){
-
-        //console.log("getOneByClass", classname);
-
+    function getOneByClass(classname) {
         return controls_dom[classname] = getByClass("spl-" + classname, widget)[0];
     }
 }
 
-export function addControl(classname, fn){
-
-    //console.log("addControl", classname, fn);
-
+export function addControl(classname, fn) {
     const div = createElement("div");
 
     div.className = "spl-" + classname;
-    addListener(div, "click", fn);
+
+    //addListener(div, "click", fn);
+    div.addEventListener('click', fn, true);
+
     header.appendChild(div);
 
     return controls_dom[classname] = div;
 }
 
-export function removeControl(classname){
-
-    //console.log("dispatch", classname);
-
+export function removeControl(classname) {
     const div = controls_dom[classname];
 
-    if(div){
-
+    if (div) {
         header.removeChild(div);
         controls_dom[classname] = null;
     }
@@ -239,40 +223,33 @@ export function removeControl(classname){
  * @param {number=} index
  */
 
-export function show(gallery, group, index){
-
-    //console.log("show", gallery);
-
+export function show(gallery, group, index) {
     anchors = gallery;
 
-    if(group){
-
+    if (group) {
         options_group = group;
         options_onshow = group["onshow"];
         options_onchange = group["onchange"];
         options_onclose = group["onclose"];
+        options_inline = group["inline"];
+        container = group["container"];
         index = index || group["index"];
     }
 
     init_gallery(index);
 }
 
-function init_gallery(index){
-
-    //console.log("init_gallery", index);
-
+function init_gallery(index) {
     slide_count = anchors.length;
 
-    if(slide_count){
-
+    if (slide_count) {
         body || init();
         options_onshow && options_onshow(index);
 
         const pane = panes[0];
         const parent = pane.parentNode;
 
-        for(let i = panes.length; i < slide_count; i++){
-
+        for (let i = panes.length; i < slide_count; i++) {
             const clone = pane.cloneNode(false);
 
             setStyle(clone, "left", (i * 100) + "%");
@@ -280,8 +257,7 @@ function init_gallery(index){
             panes[i] = clone;
         }
 
-        if(!panel){
-
+        if (!panel) {
             body.appendChild(widget);
             update_widget_viewport();
             //resize_listener();
@@ -300,14 +276,10 @@ function init_gallery(index){
  * @param {boolean|string|number=} is_default
  */
 
-function parse_option(key, is_default){
-
-    //console.log("parse_option", key, is_default);
-
+function parse_option(key, is_default) {
     let val = options[key];
 
-    if(typeof val !== "undefined"){
-
+    if (typeof val !== "undefined") {
         val = "" + val;
 
         return (val !== "false") && (val || is_default);
@@ -320,22 +292,19 @@ function parse_option(key, is_default){
  * @param {Object} anchor
  */
 
-function apply_options(anchor){
-
-    //console.log("apply_options", anchor);
-
+function apply_options(anchor) {
     options = {};
     options_group && Object.assign(options, options_group);
     Object.assign(options, anchor.dataset || anchor);
 
     // TODO: theme is icon and option field!
-
     options_media = options["media"];
     options_click = options["onclick"];
     options_theme = options["theme"];
     options_class = options["class"];
     options_autohide = parse_option("autohide", true);
     options_infinite = parse_option("infinite");
+    options_inline = parse_option("inline");
     options_progress = parse_option("progress", true);
     options_autoslide = parse_option("autoslide");
     options_preload = parse_option("preload", true);
@@ -348,83 +317,47 @@ function apply_options(anchor){
     const control = options["control"];
 
     // determine controls
-
-    if(control){
-
-        const whitelist = (
-
-            typeof control === "string" ?
-
-                control.split(",")
-            :
-                control
-        );
+    if (control) {
+        const whitelist = (typeof control === "string" ? control.split(",") : control);
 
         // prepare to false when using whitelist
-
-        for(let i = 0; i < controls.length; i++){
-
+        for (let i = 0; i < controls.length; i++) {
             options[controls[i]] = false;
         }
 
         // apply whitelist
-
-        for(let i = 0; i < whitelist.length; i++){
-
+        for (let i = 0; i < whitelist.length; i++) {
             const option = whitelist[i].trim();
 
             // handle shorthand "zoom"
-
-            if(option === "zoom"){
-
-                options["zoom-in"] =
-                options["zoom-out"] = true;
-            }
-            else{
-
+            if (option === "zoom") {
+                options["zoom-in"] = options["zoom-out"] = true;
+            } else {
                 options[option] = true;
             }
         }
     }
 
     // determine animations
-
     const animation = options["animation"];
 
     animation_scale = animation_fade = animation_slide = !animation;
     animation_custom = false;
 
-    if(animation){
-
-        const whitelist = (
-
-            typeof animation === "string" ?
-
-                animation.split(",")
-            :
-                animation
-        );
+    if (animation) {
+        const whitelist = (typeof animation === "string" ? animation.split(",") : animation);
 
         // apply whitelist
-
-        for(let i = 0; i < whitelist.length; i++){
-
+        for (let i = 0; i < whitelist.length; i++) {
             const option = whitelist[i].trim();
 
-            if(option === "scale"){
-
+            if (option === "scale") {
                 animation_scale = true;
-            }
-            else if(option === "fade"){
-
+            } else if (option === "fade") {
                 animation_fade = true;
-            }
-            else if(option === "slide"){
-
+            } else if (option === "slide") {
                 animation_slide = true;
-            }
-            else if(option){
-
+            } else if (option) {
                 animation_custom = option;
             }
         }
@@ -443,16 +376,10 @@ function apply_options(anchor){
  * @param {boolean=} prepare
  */
 
-function prepare_animation(prepare){
-
-    //console.log("prepare_animation", prepare);
-
-    if(prepare){
-
+function prepare_animation(prepare) {
+    if (prepare) {
         prepareStyle(media, prepare_animation);
-    }
-    else{
-
+    } else {
         toggleAnimation(slider, animation_slide);
         setStyle(media, "opacity", animation_fade ? 0 : 1);
         update_scroll(animation_scale && 0.8);
@@ -460,20 +387,15 @@ function prepare_animation(prepare){
     }
 }
 
-function init_slide(index){
-
-    //console.log("init_slide", index);
-
+function init_slide(index) {
     panel = panes[index - 1];
     media = /** @type {Image|HTMLVideoElement|HTMLElement} */ (panel.firstChild);
     current_slide = index;
 
-    if(media){
-
+    if (media) {
         disable_autoresizer();
 
-        if(options_fit){
-
+        if (options_fit) {
             addClass(media, options_fit);
         }
 
@@ -486,24 +408,20 @@ function init_slide(index){
 
         gallery_next && (media_next.src = gallery_next);
         options_autoslide && animate_bar(playing);
-    }
-    else{
-
+    } else {
         const type = gallery.media;
         const options_spinner = parse_option("spinner", true);
 
-        if(type === "video"){
-
+        if (type === "video") {
             toggle_spinner(options_spinner, true);
             media = /** @type {HTMLVideoElement} */ (createElement("video"));
 
-            media.onloadedmetadata = function(){
-
-                if(media === this){
-
+            media.onloadedmetadata = function() {
+                if (media === this) {
                     media.onerror = null;
                     media.width = media.videoWidth;
                     media.height = media.videoHeight;
+
                     update_media_viewport();
                     toggle_spinner(options_spinner);
                     init_slide(index);
@@ -519,19 +437,16 @@ function init_slide(index){
             media.src = gallery.src; //files[i].src;
 
             panel.appendChild(media);
-        }
-        else if(type === "node"){
-
+        } else if (type === "node") {
             media = gallery.src;
 
-            if(typeof media === "string"){
-
+            if (typeof media === "string") {
                 media = document.querySelector(media);
             }
 
-            if(media){
-
+            if (media) {
                 media._root || (media._root = media.parentNode);
+
                 update_media_viewport();
 
                 panel.appendChild(media);
@@ -539,15 +454,14 @@ function init_slide(index){
             }
 
             return;
-        }
-        else{
+        } else {
             toggle_spinner(options_spinner, true);
             media = /** @type {HTMLVideoElement|Image} */ (createElement("img"));
 
-            media.onload = function(){
-
-                if(media === this){
+            media.onload = function() {
+                if (media === this) {
                     media.onerror = null;
+
                     toggle_spinner(options_spinner);
                     init_slide(index);
                     update_media_viewport();
@@ -559,14 +473,11 @@ function init_slide(index){
             panel.appendChild(media);
         }
 
-        if(media){
-
+        if (media) {
             options_spinner || setStyle(media, "visibility", "visible");
 
-            media.onerror = function(){
-
-                if(media === this){
-
+            media.onerror = function() {
+                if (media === this) {
                     checkout(media);
                     addClass(spinner, "error");
                     toggle_spinner(options_spinner);
@@ -582,17 +493,11 @@ function init_slide(index){
  * @param {boolean=} is_on
  */
 
-function toggle_spinner(options_spinner, is_on){
-
-    //console.log("toggle_spinner", options_spinner, is_on);
-
+function toggle_spinner(options_spinner, is_on) {
     options_spinner && toggleClass(spinner, "spin", is_on);
 }
 
-function has_fullscreen(){
-
-    //console.log("has_fullscreen");
-
+function has_fullscreen() {
     return (
         document["fullscreenElement"] ||
         document["webkitFullscreenElement"] ||
@@ -600,15 +505,11 @@ function has_fullscreen(){
     );
 }
 
-function resize_listener(){
-
-    //console.log("resize_listener");
-
+function resize_listener(e) {
     update_widget_viewport()
     media && update_media_viewport();
 
-    if(prefix_request){
-
+    if (prefix_request) {
         const is_fullscreen = has_fullscreen();
 
         toggleClass(maximize, "on", is_fullscreen)
@@ -616,36 +517,27 @@ function resize_listener(){
         // handle when user toggles the fullscreen state manually
         // entering the fullscreen state manually needs to be hide the fullscreen icon, because
         // the exit fullscreen handler will not work due to a browser restriction
-
         is_fullscreen || detect_fullscreen();
     }
 
     //update_scroll();
 }
 
-function detect_fullscreen(){
-
+function detect_fullscreen() {
     toggleDisplay(maximize, (screen.availHeight - window.innerHeight) > 0);
 }
 
-function update_widget_viewport(){
-
-    //console.log("update_widget_viewport");
-
+function update_widget_viewport() {
     viewport_w = widget.clientWidth;
     viewport_h = widget.clientHeight;
 }
 
-function update_media_viewport(){
-
-    //console.log("update_media_viewport");
-
+function update_media_viewport() {
     media_w = media.clientWidth;
     media_h = media.clientHeight;
 }
 
 // function update_media_dimension(){
-//
 //     media_w = media.width;
 //     media_h = media.height;
 // }
@@ -654,10 +546,7 @@ function update_media_viewport(){
  * @param {number=} force_scale
  */
 
-function update_scroll(force_scale){
-
-    //console.log("update_scroll", force_scale);
-
+function update_scroll(force_scale) {
     setStyle(media, "transform", "translate(-50%, -50%) scale(" + (force_scale || scale) + ")");
 }
 
@@ -666,10 +555,7 @@ function update_scroll(force_scale){
  * @param {number=} y
  */
 
-function update_panel(x, y){
-
-    //console.log("update_panel", x, y);
-
+function update_panel(x, y) {
     setStyle(panel, "transform", x || y ? "translate(" + x + "px, " + y + "px)" : "");
 }
 
@@ -679,63 +565,52 @@ function update_panel(x, y){
  * @param {number=} offset
  */
 
-function update_slider(index, prepare, offset){
-
-    //console.log("update_slider", prepare, offset);
-
-    if(prepare){
-
-        prepareStyle(slider, function(){
-
+function update_slider(index, prepare, offset) {
+    if (prepare) {
+        prepareStyle(slider, function() {
             update_slider(index, false, offset);
         });
-    }
-    else{
-
+    } else {
         setStyle(slider, "transform", "translateX(" + (-index * 100 + (offset || 0)) + "%)");
     }
 }
 
-/**
- * @param {boolean=} install
- */
+function attachEventListeners() {
+    let ref = options_inline ? container : window;
 
-function toggle_listener(install){
+    ref.addEventListener('keydown', key_listener, true);
+    ref.addEventListener('wheel', wheel_listener, true);
+    ref.addEventListener('resize', resize_listener, true);
+    ref.addEventListener('popstate', history_listener, true);
+}
 
-    //console.log("toggle_listener", install);
+function removeEventListeners() {
+    let ref = options_inline ? container : window;
 
-    toggleListener(install, window, "keydown", key_listener);
-    toggleListener(install, window, "wheel", wheel_listener);
-    toggleListener(install, window, "resize", resize_listener);
-    toggleListener(install, window, "popstate", history_listener);
+    ref.removeEventListener('keydown', key_listener, true);
+    ref.removeEventListener('wheel', wheel_listener, true);
+    ref.removeEventListener('resize', resize_listener, true);
+    ref.removeEventListener('popstate', history_listener, true);
 }
 
 function history_listener(event) {
-
-    //console.log("history_listener");
-
-    if(panel && /*event.state &&*/ event.state["spl"]) {
-
+    if (panel && /*event.state &&*/ event.state["spl"]) {
         close(true);
     }
 }
 
-function key_listener(event){
-
-    //console.log("key_listener");
-
-    if(panel){
-
+function key_listener(event) {
+    if (panel) {
         const zoom_enabled = options["zoom-in"] !== false;
+        const close_enabled = options["close"] !== false;
 
-        switch(event.keyCode){
-
+        switch (event.keyCode) {
             case keycodes.BACKSPACE:
                 zoom_enabled && autofit();
                 break;
 
             case keycodes.ESCAPE:
-                close();
+                close_enabled && close();
                 break;
 
             case keycodes.SPACEBAR:
@@ -753,35 +628,31 @@ function key_listener(event){
             case keycodes.UP:
             case keycodes.NUMBLOCK_PLUS:
             case keycodes.PLUS:
-                zoom_enabled && zoom_in();
+                zoom_enabled && zoom_in(event);
                 break;
 
             case keycodes.DOWN:
             case keycodes.NUMBLOCK_MINUS:
             case keycodes.MINUS:
-                zoom_enabled && zoom_out();
+                zoom_enabled && zoom_out(event);
                 break;
 
         }
     }
 }
 
-function wheel_listener(event){
+function wheel_listener(event) {
+    event.preventDefault(); /// made by me
 
-    //console.log("wheel_listener");
-
-    if(panel && (options["zoom-in"] !== false)){
-
+    if (panel && (options["zoom-in"] !== false)) {
         let delta = event["deltaY"];
+
         delta = (delta < 0 ? 1 : delta ? -1 : 0) * 0.5;
 
-        if(delta < 0){
-
-            zoom_out();
-        }
-        else{
-
-            zoom_in();
+        if (delta < 0) {
+            zoom_out(event);
+        } else {
+            zoom_in(event);
         }
     }
 }
@@ -791,16 +662,14 @@ function wheel_listener(event){
  * @param {boolean=} _skip_animation
  */
 
-export function play(init, _skip_animation){
-
-    //console.log("play", init);
-
+export function play(init, _skip_animation) {
     const state = (typeof init === "boolean" ? init : !playing);
 
-    if(state === !playing){
-
+    if (state === !playing) {
         playing = playing ? clearTimeout(playing) : 1;
+
         toggleClass(player, "on", playing);
+
         _skip_animation || animate_bar(playing);
     }
 }
@@ -809,65 +678,45 @@ export function play(init, _skip_animation){
  * @param {?=} start
  */
 
-function animate_bar(start){
-
-    //console.log("animate_bar", start);
-
-    if(options_progress){
-
-        prepareStyle(progress, function(){
-
+function animate_bar(start) {
+    if (options_progress) {
+        prepareStyle(progress, function() {
             setStyle(progress, "transition-duration", "");
             setStyle(progress, "transform", "");
         });
 
-        if(start){
-
+        if (start) {
             setStyle(progress, "transition-duration", delay + "s");
             setStyle(progress, "transform", "translateX(0)");
         }
     }
 
-    if(start){
-
+    if (start) {
         playing = setTimeout(next, delay * 1000);
     }
 }
 
-function autohide(){
-
-    //console.log("autohide");
-
-    if(options_autohide) {
-
+function autohide() {
+    if (options_autohide) {
         hide_cooldown = Date.now() + 2950;
 
-        if(!hide){
-
+        if (!hide) {
             addClass(widget, "menu");
             schedule(3000);
         }
     }
 }
 
-function schedule(cooldown){
-
-    //console.log("schedule", cooldown);
-
-    hide = setTimeout(function(){
-
+function schedule(cooldown) {
+    hide = setTimeout(function() {
         const now = Date.now();
 
-        if(now >= hide_cooldown){
-
+        if (now >= hide_cooldown) {
             removeClass(widget, "menu");
             hide = 0;
-        }
-        else{
-
+        } else {
             schedule(hide_cooldown - now);
         }
-
     }, cooldown);
 }
 
@@ -875,29 +724,22 @@ function schedule(cooldown){
  * @param {boolean=} state
  */
 
-export function menu(state){
-
-    //console.log("menu");
-
-    if(typeof state === "boolean"){
-
+export function menu(state) {
+    if (typeof state === "boolean") {
         hide = state ? hide : 0;
     }
 
-    if(hide){
-
+    if (hide) {
         hide = clearTimeout(hide);
         removeClass(widget, "menu");
-    }
-    else{
-
+    } else {
         autohide();
     }
 }
 
-function start(e){
-
-    //console.log("start");
+function start(e) {
+    // add focus widget to handle keypress in container
+    widget.focus();
 
     cancelEvent(e, true);
 
@@ -906,8 +748,7 @@ function start(e){
 
     let touches = e.touches;
 
-    if(touches && (touches = touches[0])){
-
+    if (touches && (touches = touches[0])) {
         e = touches;
     }
 
@@ -918,31 +759,21 @@ function start(e){
     toggleAnimation(panel);
 }
 
-function end(e){
-
-    //console.log("end");
-
+function end(e) {
     cancelEvent(e);
 
-    if(is_down){
-
-        if(!dragged){
-
+    if (is_down) {
+        if (!dragged) {
             menu();
-        }
-        else{
-
-            if(slidable && dragged){
-
+        } else {
+            if (slidable && dragged) {
                 const has_next = (x < -(viewport_w / 7)) && ((current_slide < slide_count) || options_infinite);
                 const has_prev = has_next || (x > (viewport_w / 7)) && ((current_slide > 1) || options_infinite);
 
-                if(has_next || has_prev){
-
+                if (has_next || has_prev) {
                     update_slider(current_slide - 1, /* prepare? */ true, x / viewport_w * 100);
 
-                    (has_next && next()) ||
-                    (has_prev && prev());
+                    (has_next && next()) || (has_prev && prev());
                 }
 
                 x = 0;
@@ -957,50 +788,36 @@ function end(e){
     }
 }
 
-function move(e){
-
-    //console.log("move");
-
+function move(e) {
     cancelEvent(e);
 
-    if(is_down){
-
+    if (is_down) {
         let touches = e.touches;
 
-        if(touches && (touches = touches[0])){
-
+        if (touches && (touches = touches[0])) {
             e = touches;
         }
 
         // handle x-axis in slide mode and in drag mode
-
         let diff = (media_w * scale - viewport_w) / 2;
+
         x -= startX - (startX = e.pageX);
 
-        if(!slidable){
-
-            if(x > diff){
-
+        if (!slidable) {
+            if (x > diff) {
                 x = diff;
-            }
-            else if(x < -diff){
-
+            } else if (x < -diff) {
                 x = -diff
             }
 
             // handle y-axis in drag mode
-
-            if((media_h * scale) > viewport_h){
-
+            if ((media_h * scale) > viewport_h) {
                 diff = (media_h * scale - viewport_h) / 2;
                 y -= startY - (startY = e.pageY);
 
-                if(y > diff){
-
+                if (y > diff) {
                     y = diff;
-                }
-                else if(y < -diff){
-
+                } else if (y < -diff) {
                     y = -diff;
                 }
             }
@@ -1009,9 +826,7 @@ function move(e){
         dragged = true;
 
         update_panel(x, y);
-    }
-    else{
-
+    } else {
         autohide();
     }
 }
@@ -1020,21 +835,14 @@ function move(e){
  * @param {Event|boolean=} init
  */
 
-export function fullscreen(init){
-
-    //console.log("fullscreen", init);
-
+export function fullscreen(init) {
     const is_fullscreen = has_fullscreen();
 
-    if((typeof init !== "boolean") || (init !== !!is_fullscreen)){
-
-        if(is_fullscreen){
-
+    if ((typeof init !== "boolean") || (init !== !!is_fullscreen)) {
+        if (is_fullscreen) {
             document[prefix_exit]();
             //removeClass(maximize, "on");
-        }
-        else{
-
+        } else {
             widget[prefix_request]();
             //addClass(maximize, "on");
         }
@@ -1045,21 +853,14 @@ export function fullscreen(init){
  * @param {Event|string=} theme
  */
 
-export function theme(theme){
-
-    //console.log("theme", theme);
-
-    if(typeof theme !== "string"){
-
+export function theme(theme) {
+    if (typeof theme !== "string") {
         // toggle:
-
         theme = toggle_theme ? "" : options_theme || "white";
     }
 
-    if(toggle_theme !== theme){
-
+    if (toggle_theme !== theme) {
         // set:
-
         toggle_theme && removeClass(widget, toggle_theme);
         theme && addClass(widget, theme);
         toggle_theme = theme;
@@ -1070,12 +871,8 @@ export function theme(theme){
  * @param {Event|boolean=} init
  */
 
-export function autofit(init){
-
-    //console.log("autofit", init);
-
-    if(typeof init === "boolean"){
-
+export function autofit(init) {
+    if (typeof init === "boolean") {
         toggle_autofit = !init;
     }
 
@@ -1098,20 +895,15 @@ export function autofit(init){
  * @param {Event=} e
  */
 
-function zoom_in(e){
-
-    //console.log("zoom_in");
+function zoom_in(e) {
+    e.preventDefault();
 
     let value = scale / 0.65;
 
-    if(value <= 50){
-
-        //console.log(toggle_autofit);
-
+    if (value <= 50) {
         disable_autoresizer();
 
-        // if(options_fit){
-        //
+        // if (options_fit) {
         //     removeClass(media, options_fit);
         // }
 
@@ -1129,27 +921,21 @@ function zoom_in(e){
  * @param {Event=} e
  */
 
-function zoom_out(e){
-
-    //console.log("zoom_out");
+function zoom_out(e) {
+    e.preventDefault();
 
     let value = scale * 0.65;
 
     disable_autoresizer();
 
-    if(value >= 1){
-
-        if(value === 1){
-
+    if (value >= 1) {
+        if (value === 1) {
             x = y = 0;
 
-            // if(options_fit){
-            //
+            // if (options_fit) {
             //     addClass(media, options_fit);
             // }
-        }
-        else{
-
+        } else {
             x *= 0.65;
             y *= 0.65;
         }
@@ -1165,23 +951,16 @@ function zoom_out(e){
  * @param {number=} factor
  */
 
-export function zoom(factor){
-
-    //console.log("zoom", factor);
-
+export function zoom(factor) {
     scale = factor || 1;
 
     update_scroll();
 }
 
-function disable_autoresizer(){
-
-    //console.log("disable_autoresizer");
-
+function disable_autoresizer() {
     //update_media_dimension();
 
-    if(toggle_autofit){
-
+    if (toggle_autofit) {
         // removeClass(media, "autofit");
         // toggle_autofit = false;
 
@@ -1189,18 +968,16 @@ function disable_autoresizer(){
     }
 }
 
-function show_gallery(){
-
-    //console.log("show_gallery");
-
+function show_gallery() {
     history.pushState({ "spl": 1 }, "");
     history.pushState({ "spl": 2 }, "");
 
     toggleAnimation(widget, true);
     addClass(body, "hide-scrollbars");
     addClass(widget, "show");
+    options_inline && addClass(widget, "inline");
 
-    toggle_listener(true);
+    attachEventListeners();
     update_widget_viewport();
     //resize_listener();
     autohide();
@@ -1246,7 +1023,7 @@ export function filterImage({ filterColor }) {
                 worker.postMessage({ bitmap, offscreenCanvas, filterColor }, [offscreenCanvas]);
             });
         });
-    })
+    });
 }
 
 /*
@@ -1289,9 +1066,6 @@ export function filterGreen() {
 */
 
 export function download(){
-
-    //console.log("download", media);
-
     downloadImage(body, media);
 }
 
@@ -1299,27 +1073,23 @@ export function download(){
  * @param {boolean=} hashchange
  */
 
-export function close(hashchange){
-
-    //console.log("close", hashchange);
-
-    setTimeout(function(){
-
+export function close(hashchange) {
+    setTimeout(function() {
         body.removeChild(widget);
-        panel = media = gallery = options = options_group = anchors = options_onshow = options_onchange = options_onclose = options_click = null;
 
+        panel = media = gallery = options = options_group = anchors =
+          options_onshow = options_onchange = options_onclose = options_click = options_inline = container = null;
     }, 200);
 
     removeClass(body, "hide-scrollbars");
     removeClass(widget, "show");
 
     fullscreen(false);
-    toggle_listener();
+    removeEventListeners();
 
     history.go(hashchange === true ? -1 : -2);
 
     // teardown
-
     gallery_next && (media_next.src = "");
     playing && play();
     media && checkout(media);
@@ -1329,17 +1099,11 @@ export function close(hashchange){
     options_onclose && options_onclose();
 }
 
-function checkout(media){
-
-    //console.log("checkout");
-
-    if(media._root){
-
+function checkout(media) {
+    if (media._root) {
         media._root.appendChild(media);
         media._root = null;
-    }
-    else{
-
+    } else {
         const parent = media.parentNode;
         parent && parent.removeChild(media);
         media = media.src = media.onerror = "";
@@ -1350,20 +1114,13 @@ function checkout(media){
  * @param {Event=} e
  */
 
-export function prev(e){
-
-    //console.log("prev");
-
+export function prev(e) {
     e && autohide();
 
-    if(slide_count > 1){
-
-        if(current_slide > 1){
-
+    if (slide_count > 1) {
+        if (current_slide > 1) {
             return goto(current_slide - 1);
-        }
-        else if(options_infinite){
-
+        } else if (options_infinite) {
             update_slider(slide_count, true);
 
             return goto(slide_count);
@@ -1375,44 +1132,28 @@ export function prev(e){
  * @param {Event=} e
  */
 
-export function next(e){
-
-    //console.log("next");
-
+export function next(e) {
     e && autohide();
 
-    if(slide_count > 1){
-
-        if(current_slide < slide_count){
-
+    if (slide_count > 1) {
+        if (current_slide < slide_count) {
             return goto(current_slide + 1);
-        }
-        else if(options_infinite){
-
+        } else if (options_infinite) {
             update_slider(-1, true);
 
             return goto(1);
-        }
-        else if(playing){
-
+        } else if (playing) {
             play();
         }
     }
 }
 
-export function goto(slide){
-
-    //console.log("goto", slide);
-
-    if(slide !== current_slide){
-
-        if(playing){
-
+export function goto(slide) {
+    if (slide !== current_slide) {
+        if (playing) {
             clearTimeout(playing);
             animate_bar();
-        }
-        else{
-
+        } else {
             autohide();
         }
 
@@ -1428,10 +1169,7 @@ export function goto(slide){
     }
 }
 
-function prepare(direction){
-
-    //console.log("prepare", direction);
-
+function prepare(direction) {
     let anchor = anchors[current_slide - 1];
 
     apply_options(anchor);
@@ -1439,15 +1177,13 @@ function prepare(direction){
     const speed = connection && connection["downlink"];
     let size = Math.max(viewport_h, viewport_w) * dpr;
 
-    if(speed && ((speed * 1200) < size)){
-
+    if (speed && ((speed * 1200) < size)) {
         size = speed * 1200;
     }
 
     let tmp;
 
     gallery = {
-
         media: options_media,
         src: parse_src(anchor, size, options, options_media),
         title: parse_option("title",
@@ -1459,66 +1195,47 @@ function prepare(direction){
 
     gallery_next && (media_next.src = gallery_next = "");
 
-    if(options_preload && direction){
-
-        if((anchor = anchors[current_slide])){
-
+    if (options_preload && direction) {
+        if ((anchor = anchors[current_slide])) {
             const options_next = anchor.dataset || anchor;
             const next_media = options_next["media"];
 
-            if(!next_media || (next_media === "image")){
-
+            if (!next_media || (next_media === "image")) {
                 gallery_next = parse_src(anchor, size, options_next, next_media);
             }
         }
     }
 
     // apply controls
-
-    for(let i = 0; i < controls.length; i++){
-
+    for (let i = 0; i < controls.length; i++) {
         const option = controls[i];
-
-        // console.log(option + ": ", options[option]);
 
         const optionActive = parse_option(option, controls_default[option]);
 
-        toggleDisplay(controls_dom[option], optionActive);
+        toggleDisplay(controls_dom[option], optionActive); // disabled for debug by me
     }
 }
 
-function setup_page(direction){
-
-    //console.log("setup_page", direction);
-
+function setup_page(direction) {
     x = 0;
     y = 0;
     scale = 1;
 
-    if(media){
-
+    if (media) {
         // Note: the onerror callback was removed when the image was fully loaded (also for video)
-
-        if(media.onerror){
-
+        if (media.onerror) {
             checkout(media);
-        }
-        else{
-
+        } else{
             let ref = media;
 
-            setTimeout(function(){
-
-                if(ref && (media !== ref)){
-
+            setTimeout(function() {
+                if (ref && (media !== ref)) {
                     checkout(ref);
                     ref = null;
                 }
-
             }, 650);
 
             // animate out the old image
-
             prepare_animation();
             update_panel();
         }
@@ -1537,7 +1254,7 @@ function setup_page(direction){
     const is_html = parse_option("html");
     const has_content = content_title || content_description || content_button;
 
-    if(has_content) {
+    if (has_content) {
         content_title && setContent(title, content_title, { is_html });
         content_description && setContent(description, content_description, { is_html });
         content_button && setContent(button, content_button, { is_html });

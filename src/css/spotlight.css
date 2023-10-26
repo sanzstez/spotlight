@@ -17,6 +17,16 @@
   touch-action: none;
   pointer-events: none;
 }
+#spotlight:focus {
+  outline: 0px;
+}
+#spotlight:active {
+  outline: 0px;
+}
+#spotlight.inline {
+  position: relative;
+  height: 100%;
+}
 #spotlight.show {
   opacity: 1;
   transition: none;

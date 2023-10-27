@@ -25,15 +25,16 @@ import {
 
 import { controls, controls_default, keycodes } from "./config.js";
 
-import widget from "./template.js";
+import buildTemplate from "./template.js";
 import parse_src from "./parser.js";
 import { loadImage, dynamicWorker } from "./utils.js";
 import { filterFunctionality } from "./webworker.js";
 
-const controls_dom = {};
-const connection = navigator["connection"];
-const dpr = window["devicePixelRatio"] || 1;
+let controls_dom = {};
+let connection = navigator["connection"];
+let dpr = window["devicePixelRatio"] || 1;
 
+let widget;
 let x;
 let y;
 let startX;
@@ -110,6 +111,8 @@ export function init() {
 
     body = options_inline ? container : document.body;
 
+    widget = buildTemplate();
+
     slider = getOneByClass("scene");
     header = getOneByClass("header");
     footer = getOneByClass("footer");
@@ -179,8 +182,7 @@ export function init() {
     button.addEventListener('click', function() {
         if (options_click) {
             options_click(current_slide, options);
-        }
-        else if (options_href) {
+        } else if (options_href) {
             location.href = options_href;
         }
     }, true);
@@ -200,7 +202,6 @@ export function addControl(classname, fn) {
 
     div.className = "spl-" + classname;
 
-    //addListener(div, "click", fn);
     div.addEventListener('click', fn, true);
 
     header.appendChild(div);
@@ -512,7 +513,7 @@ function resize_listener(e) {
     if (prefix_request) {
         const is_fullscreen = has_fullscreen();
 
-        toggleClass(maximize, "on", is_fullscreen)
+        toggleClass(maximize, "on", is_fullscreen);
 
         // handle when user toggles the fullscreen state manually
         // entering the fullscreen state manually needs to be hide the fullscreen icon, because
@@ -636,13 +637,12 @@ function key_listener(event) {
             case keycodes.MINUS:
                 zoom_enabled && zoom_out(event);
                 break;
-
         }
     }
 }
 
 function wheel_listener(event) {
-    event.preventDefault(); /// made by me
+    event.preventDefault();
 
     if (panel && (options["zoom-in"] !== false)) {
         let delta = event["deltaY"];
@@ -1065,7 +1065,7 @@ export function filterGreen() {
 }
 */
 
-export function download(){
+export function download() {
     downloadImage(body, media);
 }
 
@@ -1097,6 +1097,51 @@ export function close(hashchange) {
     toggle_theme && theme();
     options_class && removeClass(widget, options_class);
     options_onclose && options_onclose();
+}
+
+export function destroy() {
+    if (body) {
+        removeClass(body, "hide-scrollbars");
+        removeClass(widget, "show");
+        removeClass(widget, "inline");
+
+        fullscreen(false);
+        removeEventListeners();
+
+        // teardown
+        gallery_next && (media_next.src = "");
+        playing && play();
+        media && checkout(media);
+        hide && (hide = clearTimeout(hide));
+        toggle_theme && theme();
+        options_class && removeClass(widget, options_class);
+        options_onclose && options_onclose();
+    }
+
+    // reset variables
+    controls_dom = {};
+
+    x = y = startX = startY = viewport_w = viewport_h = media_w = media_h =
+        scale = undefined;
+
+    is_down = dragged = slidable = toggle_autofit = toggle_theme = undefined;
+
+    current_slide = slide_count = anchors = options = options_media =
+        options_group = options_infinite = options_inline = container =
+        options_progress = options_onshow = options_onchange = options_onclose =
+        options_fit = options_autohide = options_autoslide = options_theme =
+        options_preload = options_href = options_click = options_class = delay = undefined;
+
+    animation_scale = animation_fade = animation_slide = animation_custom = undefined
+
+    body = panel = panes = media = media_next =
+        title = description = button = page_prev = page_next = maximize =
+        page = player = spinner = undefined;
+
+    gallery = gallery_next = playing = hide = hide_cooldown =
+        prefix_request = prefix_exit = undefined;
+
+    slider = progress = footer = header = null;
 }
 
 function checkout(media) {
@@ -1212,7 +1257,7 @@ function prepare(direction) {
 
         const optionActive = parse_option(option, controls_default[option]);
 
-        toggleDisplay(controls_dom[option], optionActive); // disabled for debug by me
+        toggleDisplay(controls_dom[option], optionActive);
     }
 }
 
@@ -1225,7 +1270,7 @@ function setup_page(direction) {
         // Note: the onerror callback was removed when the image was fully loaded (also for video)
         if (media.onerror) {
             checkout(media);
-        } else{
+        } else {
             let ref = media;
 
             setTimeout(function() {
@@ -1287,6 +1332,7 @@ export default {
     prev: prev,
     goto: goto,
     close: close,
+    destroy: destroy,
     zoom: zoom,
     menu: menu,
     show: show,

@@ -9,6 +9,7 @@ import Spotlight from "./spotlight.js";
 /** @export */ Spotlight.prev;
 /** @export */ Spotlight.goto;
 /** @export */ Spotlight.close;
+/** @export */ Spotlight.destroy;
 /** @export */ Spotlight.zoom;
 /** @export */ Spotlight.menu;
 /** @export */ Spotlight.show;
